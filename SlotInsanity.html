@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Slot Insanity</title>
+    <style>
+        body { background: #111; color: #fff; font-family: monospace; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #ffcc00; letter-spacing: 4px; margin-bottom: 5px; }
+        .dashboard { display: flex; justify-content: center; gap: 40px; margin-bottom: 20px; font-size: 16px; }
+        .status-alert { color: #00ffcc; font-weight: bold; height: 20px; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(5, 120px); gap: 15px; justify-content: center; background: #222; padding: 20px; border-radius: 12px; border: 4px solid #444; width: fit-content; margin: 0 auto 25px auto; }
+        .cell { width: 120px; height: 120px; background: #333; border-radius: 8px; position: relative; border: 2px solid #555; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .cell img { width: 100%; height: 100%; object-fit: cover; }
+        .cell.wheel-locked { border-color: #ff3300; box-shadow: 0 0 10px #ff3300; }
+        .value-overlay { position: absolute; bottom: 8px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 14px; font-weight: bold; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; background: rgba(0,0,0,0.4); padding: 2px 0; }
+        .controls { display: flex; justify-content: center; gap: 15px; align-items: center; }
+        button { background: #ffcc00; color: #000; font-weight: bold; border: none; padding: 12px 30px; font-size: 18px; border-radius: 6px; cursor: pointer; }
+        button:disabled { background: #555; color: #888; cursor: not-allowed; }
+        select { background: #222; color: #fff; border: 2px solid #ffcc00; padding: 10px; font-size: 16px; border-radius: 6px; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+    <h1>SLOT INSANITY</h1>
+    <div class="dashboard">
+        <div>BET LEVEL: 
+            <select id="betLevel" onchange="updateBet()">
+                <option value="1">1</option><option value="2">2</option><option value="5">5</option><option value="10">10</option>
+            </select>
+        </div>
+        <div>SPINS REMAINING: <span id="spinCounter">BASE</span></div>
+        <div>TRNG SEED: <span id="seedDisplay" style="color: #888;">0000000</span></div>
+    </div>
+
+    <div class="status-alert" id="statusMessage">READY TO SPIN</div>
+
+    <div class="grid" id="slotGrid"></div>
+
+    <div class="controls">
+        <button id="spinBtn" onclick="executeSpinLoop()">SPIN</button>
+    </div>
+
+    <script>
+        let currentMode = "BASE"; // BASE, HOLD_AND_SPIN, FREE_SPINS
+        let freeSpinsLeft = 0;
+        let holdSpinsLeft = 3;
+        let lockedWheelsList = []; // Array of arrays: [[r,c], [r,c]]
+        let savedWheelValues = {}; // Cache values across the bonus resets
+
+        // Build blank 3x5 layout framework on loading sequence
+        function initGrid() {
+            const grid = document.getElementById('slotGrid');
+            grid.innerHTML = '';
+            for(let r=0; r<3; r++) {
+                for(let c=0; c<5; c++) {
+                    let cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell_${r}_${c}`;
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        async function executeSpinLoop() {
+            document.getElementById('spinBtn').disabled = true;
+            const bet = parseInt(document.getElementById('betLevel').value);
+            
+            let isBonusMode = (currentMode === "HOLD_AND_SPIN");
+            
+            try {
+                const response = await fetch('http://127.0.0', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        bet_level: bet,
+                        is_bonus_spin: isBonusMode,
+                        locked_wheels: lockedWheelsList
+                    })
+                });
+                const data = await response.json();
+                
+                document.getElementById('seedDisplay').innerText = data.seed;
+                renderDisplay(data.matrix, data.wheel_values);
+                
+                if (currentMode === "BASE") {
+                    evaluateBaseRules(data.matrix);
+                } else if (currentMode === "HOLD_AND_SPIN") {
+                    evaluateHoldAndSpinRules(data.matrix);
+                }
+            } catch (error) {
+                document.getElementById('statusMessage').innerText = "CONNECTION RUNTIME OFFLINE";
+                document.getElementById('spinBtn').disabled = false;
+            }
+        }
+
+        function renderDisplay(matrix, incomingValues) {
+            for(let r=0; r<3; r++) {
+                for(let c=0; c<5; c++) {
+                    const symbol = matrix[r][c];
+                    const cell = document.getElementById(`cell_${r}_${c}`);
+                    cell.innerHTML = '';
+                    cell.className = 'cell';
+
+                    if (symbol === "EMPTY") continue;
+
+                    let img = document.createElement('img');
+                    img.src = `assets/${symbol}`;
+                    cell.appendChild(img);
+
+                    if (symbol === "wheel.jfif") {
+                        if (incomingValues[`${r},${c}`]) {
+                            savedWheelValues[`${r},${c}`] = incomingValues[`${r},${c}`];
+                        }
+                        let overlay = document.createElement('div');
+                        overlay.className = 'value-overlay';
+                        overlay.innerText = savedWheelValues[`${r},${c}`];
+                        cell.appendChild(overlay);
+                        
+                        if (currentMode === "HOLD_AND_SPIN") {
+                            cell.classList.add('wheel-locked');
+                        }
+                    }
+                }
+            }
+        }
+
+        function evaluateBaseRules(matrix) {
+            let wheelCount = 0;
+            let bonusCount = 0;
+            let newWheels = [];
+
+            for(let r=0; r<3; r++) {
+                for(let c=0; c<5; c++) {
+                    if(matrix[r][c] === "wheel.jfif") { wheelCount++; newWheels.push([r,c]); }
+                    if(matrix[r][c] === "bonus.png") bonusCount++;
+                }
+            }
+
+            if (wheelCount >= 6) {
+                currentMode = "HOLD_AND_SPIN";
+                holdSpinsLeft = 3;
+                lockedWheelsList = newWheels;
+                document.getElementById('statusMessage').innerText = `HOLD & SPIN TRIGGERED! (${wheelCount} WHEELS)`;
+                document.getElementById('spinCounter').innerText = holdSpinsLeft;
+                setTimeout(executeSpinLoop, 1500);
+            } else if (bonusCount >= 3) {
+                freeSpinsLeft = bonusCount === 5 ? 25 : 15;
+                document.getElementById('statusMessage').innerText = `FREE SPINS TRIGGERED! (${freeSpinsLeft} SPINS)`;
+                document.getElementById('spinBtn').disabled = false;
+            } else {
+                document.getElementById('statusMessage').innerText = "SPIN COMPLETE";
+                document.getElementById('spinBtn').disabled = false;
+            }
+        }
+
+        function evaluateHoldAndSpinRules(matrix) {
+            let currentTotalWheels = 0;
+            let currentLocations = [];
+
+            for(let r=0; r<3; r++) {
+                for(let c=0; c<5; c++) {
+                    if(matrix[r][c] === "wheel.jfif") {
+                        currentTotalWheels++;
+                        currentLocations.push([r,c]);
+                    }
+                }
+            }
+
+            if (currentLocations.length > lockedWheelsList.length) {
+                holdSpinsLeft = 3;
+                lockedWheelsList = currentLocations;
+                document.getElementById('statusMessage').innerText = "WHEEL LOCKED! COUNTER RESET TO 3";
+            } else {
+                holdSpinsLeft--;
+                document.getElementById('statusMessage').innerText = "NO NEW WHEELS SPUN";
+            }
+
+            document.getElementById('spinCounter').innerText = holdSpinsLeft;
+
+            if (lockedWheelsList.length === 15) {
+                document.getElementById('statusMessage').innerText = "MAX CAPACITY GRID LOCKED! ALL TIRES DOUBLED!";
+                currentMode = "BASE";
+                lockedWheelsList = [];
+                savedWheelValues = {};
+                document.getElementById('spinCounter').innerText = "BASE";
+                document.getElementById('spinBtn').disabled = false;
+            } else if (holdSpinsLeft <= 0) {
+                document.getElementById('statusMessage').innerText = "BONUS CONCLUDED. COMPILING PAYOUT METRICS.";
+                currentMode = "BASE";
+                lockedWheelsList = [];
+                savedWheelValues = {};
+                document.getElementById('spinCounter').innerText = "BASE";
+                document.getElementById('spinBtn').disabled = false;
+            } else {
+                setTimeout(executeSpinLoop, 1500);
+            }
+        }
+
+        function updateBet() {
+            if(currentMode === "BASE") {
+                document.getElementById('statusMessage').innerText = "BET METRICS CONFIGURED";
+            }
+        }
+
+        window.onload = initGrid;
+    </script>
+</body>
+</html>
