@@ -4,19 +4,116 @@
     <meta charset="UTF-8">
     <title>Slot Insanity</title>
     <style>
-        body { background: #111; color: #fff; font-family: monospace; text-align: center; margin: 0; padding: 20px; }
-        h1 { color: #ffcc00; letter-spacing: 4px; margin-bottom: 5px; }
-        .dashboard { display: flex; justify-content: center; gap: 40px; margin-bottom: 20px; font-size: 16px; }
-        .status-alert { color: #00ffcc; font-weight: bold; height: 20px; margin-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: repeat(5, 120px); gap: 15px; justify-content: center; background: #222; padding: 20px; border-radius: 12px; border: 4px solid #444; width: fit-content; margin: 0 auto 25px auto; }
-        .cell { width: 120px; height: 120px; background: #333; border-radius: 8px; position: relative; border: 2px solid #555; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        .cell img { width: 100%; height: 100%; object-fit: cover; }
-        .cell.wheel-locked { border-color: #ff3300; box-shadow: 0 0 10px #ff3300; }
-        .value-overlay { position: absolute; bottom: 8px; left: 0; width: 100%; text-align: center; color: #fff; font-size: 14px; font-weight: bold; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; background: rgba(0,0,0,0.4); padding: 2px 0; }
-        .controls { display: flex; justify-content: center; gap: 15px; align-items: center; }
-        button { background: #ffcc00; color: #000; font-weight: bold; border: none; padding: 12px 30px; font-size: 18px; border-radius: 6px; cursor: pointer; }
-        button:disabled { background: #555; color: #888; cursor: not-allowed; }
-        select { background: #222; color: #fff; border: 2px solid #ffcc00; padding: 10px; font-size: 16px; border-radius: 6px; font-family: monospace; }
+        body { 
+            background: linear-gradient(135deg, #111116 0%, #1a1525 100%); 
+            color: #fff; 
+            font-family: 'Courier New', monospace; 
+            text-align: center; 
+            margin: 0; 
+            padding: 20px; 
+        }
+        h1 { 
+            color: #ffcc00; 
+            font-size: 42px;
+            letter-spacing: 6px; 
+            margin-bottom: 5px; 
+            text-shadow: 0 0 15px #ffcc00, 0 0 30px #ff9900;
+        }
+        .dashboard { 
+            display: flex; 
+            justify-content: center; 
+            gap: 40px; 
+            margin-bottom: 25px; 
+            font-size: 16px; 
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 30px;
+            border-radius: 50px;
+            width: fit-content;
+            margin: 0 auto 25px auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .status-alert { 
+            color: #00ffcc; 
+            font-weight: bold; 
+            font-size: 18px;
+            letter-spacing: 2px;
+            height: 25px; 
+            margin-bottom: 15px; 
+            text-shadow: 0 0 8px #00ffcc;
+        }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(5, 120px); 
+            gap: 15px; 
+            justify-content: center; 
+            background: linear-gradient(180deg, #1f1a30 0%, #0f0c1b 100%); 
+            padding: 25px; 
+            border-radius: 16px; 
+            border: 4px solid #ffcc00; 
+            box-shadow: 0 0 30px rgba(255, 204, 0, 0.3), inset 0 0 20px rgba(0,0,0,0.8);
+            width: fit-content; 
+            margin: 0 auto 15px auto; 
+        }
+        .cell { 
+            width: 120px; 
+            height: 120px; 
+            background: #252035; 
+            border-radius: 10px; 
+            position: relative; 
+            border: 2px solid #4a3f70; 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .cell img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.1s ease; }
+        
+        /* Shuffling animation styles */
+        .cell.shuffling img {
+            animation: blurShuffle 0.1s infinite alternate;
+            filter: blur(3px) brightness(1.2);
+        }
+        @keyframes blurShuffle {
+            0% { transform: translateY(-20px); }
+            100% { transform: translateY(20px); }
+        }
+
+        .cell.wheel-locked { 
+            border-color: #ff3300; 
+            box-shadow: 0 0 20px #ff3300, inset 0 0 10px #ff3300; 
+            background: #401015;
+        }
+        .value-overlay { 
+            position: absolute; 
+            bottom: 8px; 
+            left: 0; 
+            width: 100%; 
+            text-align: center; 
+            color: #00ffcc; 
+            font-size: 15px; 
+            font-weight: bold; 
+            text-shadow: 0 0 6px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; 
+            background: rgba(0, 0, 0, 0.6); 
+            padding: 3px 0; 
+            border-top: 1px solid rgba(0, 255, 204, 0.3);
+        }
+        .controls { display: flex; justify-content: center; gap: 20px; align-items: center; }
+        button { 
+            background: linear-gradient(180deg, #ffe066 0%, #ffcc00 100%); 
+            color: #000; 
+            font-weight: bold; 
+            font-family: monospace;
+            border: none; 
+            padding: 15px 45px; 
+            font-size: 22px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            box-shadow: 0 5px 0 #b38f00, 0 8px 15px rgba(0,0,0,0.4);
+        }
+        button:disabled { background: #444; color: #777; box-shadow: none; cursor: not-allowed; }
+        select { background: #151221; color: #ffcc00; border: 2px solid #ffcc00; padding: 8px 15px; font-size: 16px; border-radius: 6px; font-family: monospace; font-weight: bold; outline: none; }
+        .win-ticker { font-size: 24px; color: #ffcc00; font-weight: bold; margin-bottom: 20px; height: 30px; text-shadow: 0 0 10px rgba(255,204,0,0.5); }
     </style>
 </head>
 <body>
@@ -24,7 +121,7 @@
     <h1>SLOT INSANITY</h1>
     <div class="dashboard">
         <div>BET LEVEL: 
-            <select id="betLevel" onchange="updateBet()">
+            <select id="betLevel">
                 <option value="1">1</option><option value="2">2</option><option value="5">5</option><option value="10">10</option>
             </select>
         </div>
@@ -33,6 +130,7 @@
     </div>
 
     <div class="status-alert" id="statusMessage">READY TO SPIN</div>
+    <div class="win-ticker" id="winDisplay">CREDITS WON: $0</div>
 
     <div class="grid" id="slotGrid"></div>
 
@@ -41,13 +139,17 @@
     </div>
 
     <script>
-        let currentMode = "BASE"; // BASE, HOLD_AND_SPIN, FREE_SPINS
+        let currentMode = "BASE"; 
         let freeSpinsLeft = 0;
         let holdSpinsLeft = 3;
-        let lockedWheelsList = []; // Array of arrays: [[r,c], [r,c]]
-        let savedWheelValues = {}; // Cache values across the bonus resets
+        let lockedWheelsList = []; 
+        let savedWheelValues = {}; 
 
-        // Build blank 3x5 layout framework on loading sequence
+        const ALL_ASSET_IMAGES = [
+            "4leaf.png", "7.png", "bar.png", "bell.png", "bonus.png", 
+            "cherry.png", "diamond.png", "key.jfif", "lemon.png", "shoe.png", "star.png"
+        ];
+
         function initGrid() {
             const grid = document.getElementById('slotGrid');
             grid.innerHTML = '';
@@ -56,21 +158,58 @@
                     let cell = document.createElement('div');
                     cell.className = 'cell';
                     cell.id = `cell_${r}_${c}`;
+                    let img = document.createElement('img');
+                    img.src = `assets/key.jfif`;
+                    cell.appendChild(img);
                     grid.appendChild(cell);
                 }
             }
         }
 
+        function startVisualShuffle() {
+            for(let r=0; r<3; r++) {
+                for(let c=0; c<5; c++) {
+                    if (currentMode === "HOLD_AND_SPIN" && isWheelLocked(r, c)) continue;
+                    
+                    let cell = document.getElementById(`cell_${r}_${c}`);
+                    cell.classList.add('shuffling');
+                    
+                    // High-speed random graphic swapping loop
+                    let img = cell.querySelector('img');
+                    cell.dataset.shuffleInterval = setInterval(() => {
+                        let randImg = ALL_ASSET_IMAGES[Math.floor(Math.random() * ALL_ASSET_IMAGES.length)];
+                        img.src = `assets/${randImg}`;
+                    }, 50);
+                }
+            }
+        }
+
+        function stopVisualShuffle(r, c) {
+            let cell = document.getElementById(`cell_${r}_${c}`);
+            if (cell.dataset.shuffleInterval) {
+                clearInterval(parseInt(cell.dataset.shuffleInterval));
+            }
+            cell.classList.remove('shuffling');
+        }
+
+        function isWheelLocked(r, c) {
+            return lockedWheelsList.some(coord => coord[0] === r && coord[1] === c);
+        }
+
         async function executeSpinLoop() {
             document.getElementById('spinBtn').disabled = true;
-            const bet = parseInt(document.getElementById('betLevel').value);
+            document.getElementById('statusMessage').innerText = "RNG REELS SHUFFLING...";
+            document.getElementById('winDisplay').innerText = "CREDITS WON: --";
             
+            startVisualShuffle();
+            const bet = parseInt(document.getElementById('betLevel').value);
             let isBonusMode = (currentMode === "HOLD_AND_SPIN");
             
-            try {
-               const response = await fetch('http://localhost:5000/spin', {
+            // Artificial delay to let the visual shuffle run nicely on eyes before stopping
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-                
+            try {
+                const response = await fetch('http://localhost:5000/spin', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
@@ -82,14 +221,26 @@
                 const data = await response.json();
                 
                 document.getElementById('seedDisplay').innerText = data.seed;
+                
+                // Stop shuffle layers row by row and render real outcomes
+                for(let r=0; r<3; r++) {
+                    for(let c=0; c<5; c++) {
+                        stopVisualShuffle(r, c);
+                    }
+                }
+
                 renderDisplay(data.matrix, data.wheel_values);
                 
                 if (currentMode === "BASE") {
+                    document.getElementById('winDisplay').innerText = `CREDITS WON: $${data.payout}`;
                     evaluateBaseRules(data.matrix);
                 } else if (currentMode === "HOLD_AND_SPIN") {
                     evaluateHoldAndSpinRules(data.matrix);
                 }
             } catch (error) {
+                for(let r=0; r<3; r++) {
+                    for(let c=0; c<5; c++) { stopVisualShuffle(r, c); }
+                }
                 document.getElementById('statusMessage').innerText = "CONNECTION RUNTIME OFFLINE";
                 document.getElementById('spinBtn').disabled = false;
             }
@@ -103,108 +254,5 @@
                     cell.innerHTML = '';
                     cell.className = 'cell';
 
-                    if (symbol === "EMPTY") continue;
+                    if (symbol === "EMPTY" || symbol === "") continue;
 
-                    let img = document.createElement('img');
-                    img.src = `assets/${symbol}`;
-                    cell.appendChild(img);
-
-                    if (symbol === "wheel.jfif") {
-                        if (incomingValues[`${r},${c}`]) {
-                            savedWheelValues[`${r},${c}`] = incomingValues[`${r},${c}`];
-                        }
-                        let overlay = document.createElement('div');
-                        overlay.className = 'value-overlay';
-                        overlay.innerText = savedWheelValues[`${r},${c}`];
-                        cell.appendChild(overlay);
-                        
-                        if (currentMode === "HOLD_AND_SPIN") {
-                            cell.classList.add('wheel-locked');
-                        }
-                    }
-                }
-            }
-        }
-
-        function evaluateBaseRules(matrix) {
-            let wheelCount = 0;
-            let bonusCount = 0;
-            let newWheels = [];
-
-            for(let r=0; r<3; r++) {
-                for(let c=0; c<5; c++) {
-                    if(matrix[r][c] === "wheel.jfif") { wheelCount++; newWheels.push([r,c]); }
-                    if(matrix[r][c] === "bonus.png") bonusCount++;
-                }
-            }
-
-            if (wheelCount >= 6) {
-                currentMode = "HOLD_AND_SPIN";
-                holdSpinsLeft = 3;
-                lockedWheelsList = newWheels;
-                document.getElementById('statusMessage').innerText = `HOLD & SPIN TRIGGERED! (${wheelCount} WHEELS)`;
-                document.getElementById('spinCounter').innerText = holdSpinsLeft;
-                setTimeout(executeSpinLoop, 1500);
-            } else if (bonusCount >= 3) {
-                freeSpinsLeft = bonusCount === 5 ? 25 : 15;
-                document.getElementById('statusMessage').innerText = `FREE SPINS TRIGGERED! (${freeSpinsLeft} SPINS)`;
-                document.getElementById('spinBtn').disabled = false;
-            } else {
-                document.getElementById('statusMessage').innerText = "SPIN COMPLETE";
-                document.getElementById('spinBtn').disabled = false;
-            }
-        }
-
-        function evaluateHoldAndSpinRules(matrix) {
-            let currentTotalWheels = 0;
-            let currentLocations = [];
-
-            for(let r=0; r<3; r++) {
-                for(let c=0; c<5; c++) {
-                    if(matrix[r][c] === "wheel.jfif") {
-                        currentTotalWheels++;
-                        currentLocations.push([r,c]);
-                    }
-                }
-            }
-
-            if (currentLocations.length > lockedWheelsList.length) {
-                holdSpinsLeft = 3;
-                lockedWheelsList = currentLocations;
-                document.getElementById('statusMessage').innerText = "WHEEL LOCKED! COUNTER RESET TO 3";
-            } else {
-                holdSpinsLeft--;
-                document.getElementById('statusMessage').innerText = "NO NEW WHEELS SPUN";
-            }
-
-            document.getElementById('spinCounter').innerText = holdSpinsLeft;
-
-            if (lockedWheelsList.length === 15) {
-                document.getElementById('statusMessage').innerText = "MAX CAPACITY GRID LOCKED! ALL TIRES DOUBLED!";
-                currentMode = "BASE";
-                lockedWheelsList = [];
-                savedWheelValues = {};
-                document.getElementById('spinCounter').innerText = "BASE";
-                document.getElementById('spinBtn').disabled = false;
-            } else if (holdSpinsLeft <= 0) {
-                document.getElementById('statusMessage').innerText = "BONUS CONCLUDED. COMPILING PAYOUT METRICS.";
-                currentMode = "BASE";
-                lockedWheelsList = [];
-                savedWheelValues = {};
-                document.getElementById('spinCounter').innerText = "BASE";
-                document.getElementById('spinBtn').disabled = false;
-            } else {
-                setTimeout(executeSpinLoop, 1500);
-            }
-        }
-
-        function updateBet() {
-            if(currentMode === "BASE") {
-                document.getElementById('statusMessage').innerText = "BET METRICS CONFIGURED";
-            }
-        }
-
-        window.onload = initGrid;
-    </script>
-</body>
-</html>
